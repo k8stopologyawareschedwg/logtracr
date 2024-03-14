@@ -29,6 +29,23 @@ const (
 	LogTracrVerboseEnvVar  string = "LOGTRACR_VERBOSE"
 )
 
+type EnvVarMissing struct {
+	Name string
+}
+
+func (ev *EnvVarMissing) Error() string {
+	return fmt.Sprintf("missing env var %q", ev.Name)
+}
+
+type UnsupportedSetting struct {
+	Name  string
+	Value string
+}
+
+func (us *UnsupportedSetting) Error() string {
+	return fmt.Sprintf("setting %q unsupported value %q", us.Name, us.Value)
+}
+
 func ConfigFromEnv() (Config, error) {
 	var ok bool
 	var err error
@@ -36,31 +53,31 @@ func ConfigFromEnv() (Config, error) {
 
 	conf.DumpDirectory, ok = os.LookupEnv(LogTracrDirEnvVar)
 	if !ok {
-		return conf, fmt.Errorf("missing env var %q", LogTracrDirEnvVar)
+		return conf, &EnvVarMissing{Name: LogTracrDirEnvVar}
 	}
 	if conf.DumpDirectory == "" {
-		return conf, fmt.Errorf("missing content for env var %q", LogTracrDirEnvVar)
+		return conf, &UnsupportedSetting{Name: LogTracrDirEnvVar, Value: conf.DumpDirectory}
 	}
 
 	val, ok := os.LookupEnv(LogTracrIntervalEnvVar)
 	if !ok {
-		return conf, fmt.Errorf("missing env var %q", LogTracrIntervalEnvVar)
+		return conf, &EnvVarMissing{Name: LogTracrIntervalEnvVar}
 	}
 	conf.DumpInterval, err = time.ParseDuration(val)
 	if err != nil {
 		return conf, fmt.Errorf("cannot parse interval from %v: %w", val, err)
 	}
 	if conf.DumpInterval == 0 {
-		return conf, fmt.Errorf("zero update interval")
+		return conf, &UnsupportedSetting{Name: LogTracrIntervalEnvVar, Value: val}
 	}
 
 	verb, ok := os.LookupEnv(LogTracrVerboseEnvVar)
 	if !ok {
-		return conf, fmt.Errorf("missing env var %q", LogTracrVerboseEnvVar)
+		return conf, &EnvVarMissing{Name: LogTracrVerboseEnvVar}
 	}
 	conf.Verbose, err = strconv.Atoi(verb)
 	if err != nil {
-		return conf, fmt.Errorf("cannot parse the content of env var %q: %w", LogTracrVerboseEnvVar, err)
+		return conf, &UnsupportedSetting{Name: LogTracrIntervalEnvVar, Value: verb}
 	}
 
 	return conf, nil
