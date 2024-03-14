@@ -28,37 +28,17 @@ func GetLogIDKey() string {
 	return logIDKey
 }
 
-func startsWithLogID(kvList ...interface{}) (string, bool) {
-	if len(kvList) < 2 {
-		return "", false
-	}
-	return isLogIDPair(kvList[0], kvList[1])
-}
-
-func findLogID(values []interface{}) (string, bool) {
+func findLogID(values []any) (string, bool) {
 	if len(values) < 2 || len(values)%2 != 0 {
 		return "", false // should never happen
 	}
 	for i := 0; i < len(values); i += 2 {
-		if vs, ok := isLogIDPair(values[i], values[i+1]); ok {
-			return vs, ok
+		kv, ok := values[i].(string)
+		if !ok || kv != logIDKey {
+			continue
 		}
+		vv, ok := values[i+1].(string)
+		return vv, ok
 	}
 	return "", false
-}
-
-func isLogIDPair(key, val interface{}) (string, bool) {
-	if !isLogIDKey(key) {
-		return "", false
-	}
-	vs, ok := val.(string)
-	return vs, ok
-}
-
-func isLogIDKey(val interface{}) bool {
-	v, ok := val.(string)
-	if !ok {
-		return false
-	}
-	return v == logIDKey
 }

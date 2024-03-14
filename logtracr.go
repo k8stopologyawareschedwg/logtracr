@@ -99,7 +99,7 @@ func (l logtracr) store(args string, kvList ...interface{}) {
 	}
 	logID, ok := l.logID, l.hasLogID
 	if !ok {
-		logID, ok = startsWithLogID(kvList...)
+		logID, ok = findLogID(kvList)
 	}
 	if !ok {
 		return
