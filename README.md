@@ -1,4 +1,4 @@
-# Logtracr: a log flight record backend compatible with logr 
+# Logtracr: a go-logr flight recorder backend
 
 This package implements a log [flight recorder](https://en.wikipedia.org/wiki/JDK_Flight_Recorder) backend compatible with the [logr](https://github.com/go-logr/logr) interface.
 Please check [the design document](DESIGN.md) for more details
