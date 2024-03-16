@@ -1,4 +1,4 @@
-# Taming the scheduler logging
+# A flight recorder for logs
 Owner: fromani@redhat.com
 
 ## Summary
@@ -10,51 +10,59 @@ This is because keeping the verbosiness high will create a large amount of logs,
 it low will make it way harder to troubleshoot an issue without increase the verbosiness before,
 restarting the affected components and re-create the issue, which can take time and effort.
 
-The scheduler logs are affected by all these issues. Keeping the log level high is, as it stands
+The component logs are affected by all these issues. Keeping the log level high is, as it stands
 today (March 2024), still discouraged and impractical. The matter is further complicated by the
-fact the NUMA-aware scheduler is a new component which takes novel approaches, out of necessity,
-and whose behavior is still under scrutiny. So it is especially important to have enough
+some compontents may require post-fact review or audit of their behaviour, regardless of how
+comprenshive and solid their testsuite it is. This is because some component decision may
+depend on the request and on the cluster state, which can be impossible to mock.
+In the best case scenarios, the cluster state is mockable only after it is known, which
+severely limits the investigation scope. So it is especially important to have enough
 data to troubleshoot issue, which once again calls for high verbosiness.
 
 We would like to improve the current flow, which is basically keep verbosiness=2, and in case
 of incidents (but note: always after the fact), bump the verbosiness to 4 or more,
 reproduce again, send logs.
 
-## Motivation
-We want to improve the supportability of the NUMA-aware scheduler. Having detailed logs is key
-to troubleshoot this component, because it is new and takes a novel approach (in the k8s ecosystem)
-due to the characteristics of the problem space. Having detailed logs is thus a key enabler to
-reduce the support cycle, or to make support possible at all.
+## Motivation: flight recording for logs
 
-The work described here explicitly targets the NUMA-aware scheduler plugin, which is a very small
-subset of the code running in a (secondary) scheduler process.
-We have to trust the k8s ecosystem to get insights about all the framework used in the
-NUMA-aware scheduler process.
+A great and concise definition of "flight recording" comes from the [go blog](https://go.dev/blog/execution-traces-2024):
+```
+Suppose you work on a web service and an RPC took a very long time.
+You couldn’t start tracing at the point you knew the RPC was already taking a while, because the root cause of the slow request already happened and wasn’t recorded.
+[...]
+The insight with flight recording is to have tracing on continuously and always keep the most recent trace data around, just in case.
+Then, once something interesting happens, the program can just write out whatever it has!
+```
 
-We believe this is a fair trade off because the k8s framework is very battle tested and has a
-huge ecosystem backing it. Out of practicality, we cannot land nontrivial changes in that codebase.
-Furthermore, most of the novel code is contained in the NUMA-aware scheduler plugin portion,
-so focusing on this area for extra logging seems the sweet spot.
+Some platforms enable "flight recording" for events and traces, with focus often times for performance
+analysis. Notable examples are the aforementioned [golang](https://go.dev/blog/execution-traces-2024) and the [JDK](https://en.wikipedia.org/wiki/JDK_Flight_Recorder).
 
+The flight recording pattern is a very powerful tool for events and traces; it is oftentimes used for performance
+analysis. Oftentimes, though something similar to analyze the business logic behavior would be very useful.
+Flight recording is not meant by any means as replacement for tests. A good testsuite is a prerequisite.
+However, it's also a fact that quite often the business logic operates on the program state - and nowadays on cluster state,
+which can be hard to predict, mock or both; and in any case, reproduction is by definition post-fact, which doesn't help
+in auditing, support, troubleshooting.
+
+The missing link, which this package aims to provide, is a flight-recorder-like approach for logs.
 
 ## Goals
-- Make it possible/easier to correlate all the logs pertaining to a container during a scheduling cycle
-- Improve the signal-to-noise ratio of the logs, filtering out all the content not relevant for
-  the NUMA-aware scheduling
+- Make it possible/easier to correlate all the logs pertaining to a code flow
+- Improve the signal-to-noise ratio of the logs, filtering out all the content not relevant the specific use case
 - Avoid excessive storage consumption
 - Minimize the slowdown caused by logging
 
 ## Non-Goals
-- Change the logging system (e.g. migrate away from klog)
+- Change the logging system (e.g. migrate away from go-logr/klog)
 - Introduce a replacement logger (e.g. module with klog-like API)
-- Break source code compatibility (e.g. no changes to the scheduler plugins source code)
+- Break source code compatibility (e.g. no changes to the hosting code base)
 - Move to traces (independent effort not mutually exclusive)
 - Make the verbosiness tunable at runtime (no consensus about how to do securely and safely,
   will require a new logging package)
 
 ## Proposal
 - Introduce and use extensively a logID key/value pair to enable correlation of all the log entries
-  pertaining to a scheduling cycle, or to a scheduling activity in general
+  pertaining to a specific code flow
 - Introduce a new logging backend plugging into the logr framework, which klog >= 2.100 fully supports
 - Let the new logging backend handle the logging demultiplexing
   - Aggregate the logs per-object
@@ -85,7 +93,7 @@ but using a combination of global verbosity and flow matching. In other words we
 2. NUMA-specific log sink: all the logs from all the logs are filtered by verbosity and some flowID, and grouped by the same flowID.
 A `flowID` would be roughly equivalent to a otel `trace_id`.
 
-A "flow ID" is any token which is unique per-flow and per-object. For example, every pod during a scheduling cycle should
+A "flow ID" is any token which is unique per-flow and per-object. For example, every code flow should
 have its own uinque flowID. The value of flowID is not relevant.
 
 The log packages accepts a Logger implementation that will be used as backing implementation of the traditional klog log calls
@@ -136,7 +144,7 @@ and flowID). Note the configuration agent (numaresources-operator for example) i
 
 In order to determine `flowID` the logging backend needs some cooperation from the application layer.
 The application layer is already using a `logID`/`xxx` key/value pair consistently across all the logs
-for the scheduler plugin. This was an independent decision predating the introduction of the custom logging.
+for the hosting codebase. This was an independent decision predating the introduction of the custom logging.
 Having a consistent key enables to easily grep the general log to fetch all the messages pertaining a flow,
 so it's a good addition (and completely transparent to the application logic) anyway.
 
@@ -187,10 +195,12 @@ can be deleted to make room for the new entries. It's often preferrables to have
 
 ### use an off-the-shelf 3rd party logging package
 
-At moment of writing, we are not aware of such package. If a comparable alternative is found, we will run an evaluation
-and a case study about replacing the in-house solution as soon as possible.
+At moment of writing, we are not aware of a logging package which easily enables flight recording and that fits
+in the go-logr ecosystem. The search is not done though. If a comparable alternative is found, we will run an evaluation
+and a case study about gaps and differences with this solution.
 
-### replacing the core logging package
+### just replace the core logging package
 
-this will require to have the logging package replaced in kubernetes, which is practically impossible.
+This is among the non-goals; besides, this is specifically a non-goal unless the replacement is 1:1 source code API compatible,
+and per previous research there is not such option.
 
