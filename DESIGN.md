@@ -13,8 +13,10 @@ restarting the affected components and re-create the issue, which can take time 
 The component logs are affected by all these issues. Keeping the log level high is, as it stands
 today (March 2024), still discouraged and impractical. The matter is further complicated by the
 some compontents may require post-fact review or audit of their behaviour, regardless of how
-comprenshive and solid their testsuite it is. This is because some component decision may
-depend on the request and on the cluster state, which can be impossible to mock.
+comprenshive and solid their testsuite it is.
+
+This is because some component decision may depend on the request and on the cluster state,
+which can be impossible to predict and/or mock.
 In the best case scenarios, the cluster state is mockable only after it is known, which
 severely limits the investigation scope. So it is especially important to have enough
 data to troubleshoot issue, which once again calls for high verbosiness.
@@ -37,20 +39,19 @@ Then, once something interesting happens, the program can just write out whateve
 Some platforms enable "flight recording" for events and traces, with focus often times for performance
 analysis. Notable examples are the aforementioned [golang](https://go.dev/blog/execution-traces-2024) and the [JDK](https://en.wikipedia.org/wiki/JDK_Flight_Recorder).
 
-The flight recording pattern is a very powerful tool for events and traces; it is oftentimes used for performance
+The flight recording pattern is a very powerful tool for events and traces; it is mostly used for performance
 analysis. Oftentimes, though something similar to analyze the business logic behavior would be very useful.
-Flight recording is not meant by any means as replacement for tests. A good testsuite is a prerequisite.
-However, it's also a fact that quite often the business logic operates on the program state - and nowadays on cluster state,
-which can be hard to predict, mock or both; and in any case, reproduction is by definition post-fact, which doesn't help
-in auditing, support, troubleshooting.
+Is worth highlighting that flight recording is not meant by any means as replacement for tests, but rather as complement.
+For any software, a good testsuite is just a prerequisite.
 
-The missing link, which this package aims to provide, is a flight-recorder-like approach for logs.
+This package aims to provide a flight recorder (-alike) functionality for logs.
 
 ## Goals
 - Make it possible/easier to correlate all the logs pertaining to a code flow
 - Improve the signal-to-noise ratio of the logs, filtering out all the content not relevant the specific use case
 - Avoid excessive storage consumption
 - Minimize the slowdown caused by logging
+- Be compatible with the go-logr API for easy integration in a codebase
 
 ## Non-Goals
 - Change the logging system (e.g. migrate away from go-logr/klog)
