@@ -35,12 +35,15 @@ type Config struct {
 
 type Params struct {
 	Conf        Config
+	MainSink    *logr.Logger // optional, use nil to let the package use its defaults
 	Timestamper TimeFunc
 }
 
-func SetupWithEnv(ctx context.Context) (logr.Logger, logr.Logger, error) {
-	backend := log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+func DefaultBackend() *log.Logger {
+	return log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+}
 
+func SetupWithEnv(ctx context.Context, backend *log.Logger) (logr.Logger, logr.Logger, error) {
 	conf, err := ConfigFromEnv()
 	if err != nil {
 		return stdr.New(backend), logr.Discard(), err
@@ -54,7 +57,12 @@ func SetupWithEnv(ctx context.Context) (logr.Logger, logr.Logger, error) {
 }
 
 func SetupWithParams(ctx context.Context, backend *log.Logger, params Params) (logr.Logger, logr.Logger) {
-	mainSink := stdr.New(backend)
+	var mainSink logr.Logger
+	if params.MainSink == nil {
+		mainSink = stdr.New(backend)
+	} else {
+		mainSink = *params.MainSink
+	}
 	mainSink.Info("starting", "configuration", toJSON(params.Conf))
 
 	traces := NewTracrMap(params.Timestamper)
