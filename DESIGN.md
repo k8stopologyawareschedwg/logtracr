@@ -131,9 +131,9 @@ can just safely ignore them.
   /---------------/         |             |
  /    main log   /          |             |
 /---------------/           V             V
-                    /--------------/  /-------------/
-                   / flowID=A log /  / flowID=X log /
-                  /--------------/  /--------------/
+                   /--------------/  /--------------/
+                  / flowID=A log /  / flowID=X log /
+                 /--------------/  /--------------/
 ```
 
 ### grouping log entries by flowID
