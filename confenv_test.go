@@ -40,10 +40,8 @@ func TestConfigFromEnv(t *testing.T) {
 			env: map[string]string{
 				LogTracrDirEnvVar:      "/run/dump",
 				LogTracrIntervalEnvVar: "10s",
-				LogTracrVerboseEnvVar:  "3",
 			},
 			expectedCfg: Config{
-				Verbose:       3,
 				DumpInterval:  10 * time.Second,
 				DumpDirectory: "/run/dump",
 			},
@@ -52,7 +50,6 @@ func TestConfigFromEnv(t *testing.T) {
 			name: "missing dir",
 			env: map[string]string{
 				LogTracrIntervalEnvVar: "10s",
-				LogTracrVerboseEnvVar:  "3",
 			},
 			expectedErr: true,
 		},
@@ -61,15 +58,13 @@ func TestConfigFromEnv(t *testing.T) {
 			env: map[string]string{
 				LogTracrDirEnvVar:      "",
 				LogTracrIntervalEnvVar: "10s",
-				LogTracrVerboseEnvVar:  "3",
 			},
 			expectedErr: true,
 		},
 		{
 			name: "missing interval",
 			env: map[string]string{
-				LogTracrDirEnvVar:     "/run/dump",
-				LogTracrVerboseEnvVar: "3",
+				LogTracrDirEnvVar: "/run/dump",
 			},
 			expectedErr: true,
 		},
@@ -78,7 +73,6 @@ func TestConfigFromEnv(t *testing.T) {
 			env: map[string]string{
 				LogTracrDirEnvVar:      "/run/dump",
 				LogTracrIntervalEnvVar: "10",
-				LogTracrVerboseEnvVar:  "3",
 			},
 			expectedErr: true,
 		},
@@ -87,7 +81,6 @@ func TestConfigFromEnv(t *testing.T) {
 			env: map[string]string{
 				LogTracrDirEnvVar:      "/run/dump",
 				LogTracrIntervalEnvVar: "x",
-				LogTracrVerboseEnvVar:  "3",
 			},
 			expectedErr: true,
 		},
@@ -96,33 +89,14 @@ func TestConfigFromEnv(t *testing.T) {
 			env: map[string]string{
 				LogTracrDirEnvVar:      "/run/dump",
 				LogTracrIntervalEnvVar: "_a",
-				LogTracrVerboseEnvVar:  "3",
 			},
 			expectedErr: true,
 		},
 		{
-			name: "malformed interval (3)",
+			name: "malformed interval (4)",
 			env: map[string]string{
 				LogTracrDirEnvVar:      "/run/dump",
 				LogTracrIntervalEnvVar: "0s",
-				LogTracrVerboseEnvVar:  "3",
-			},
-			expectedErr: true,
-		},
-		{
-			name: "missing verbose",
-			env: map[string]string{
-				LogTracrDirEnvVar:      "/run/dump",
-				LogTracrIntervalEnvVar: "10s",
-			},
-			expectedErr: true,
-		},
-		{
-			name: "malformed verbose",
-			env: map[string]string{
-				LogTracrDirEnvVar:      "/run/dump",
-				LogTracrIntervalEnvVar: "15s",
-				LogTracrVerboseEnvVar:  "ty",
 			},
 			expectedErr: true,
 		},

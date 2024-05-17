@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Red Hat, Inc.
+ * Copyright 2024 Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,29 +16,36 @@
 
 package logtracr
 
-var (
-	logIDKey = "pod"
+import (
+	"github.com/go-logr/logr"
+	"github.com/wojas/genericr"
 )
 
-func SetLogIDKey(val string) {
-	logIDKey = val
+var (
+	backend    logr.Logger
+	registered bool
+)
+
+func RegisterBackend(lh logr.Logger) {
+	backend = lh
+	registered = true
 }
 
-func GetLogIDKey() string {
-	return logIDKey
-}
-
-func findLogID(values []any) (string, bool) {
-	if len(values) < 2 || len(values)%2 != 0 {
-		return "", false // should never happen
+func Tee(lh logr.Logger) logr.Logger {
+	if !registered {
+		return lh
 	}
-	for i := 0; i < len(values); i += 2 {
-		kv, ok := values[i].(string)
-		if !ok || kv != logIDKey {
-			continue
+	return Chain(backend, lh)
+}
+
+func Chain(lhs ...logr.Logger) logr.Logger {
+	return logr.New(genericr.New(func(e genericr.Entry) {
+		for _, lh := range lhs {
+			if e.Error != nil {
+				lh.Error(e.Error, e.Message, e.Fields...)
+			} else {
+				lh.Info(e.Message, e.Fields...)
+			}
 		}
-		vv, ok := values[i+1].(string)
-		return vv, ok
-	}
-	return "", false
+	}))
 }

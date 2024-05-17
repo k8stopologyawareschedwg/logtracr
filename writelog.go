@@ -27,16 +27,16 @@ import (
 	"github.com/go-logr/logr"
 )
 
-func RunForever(ctx context.Context, logger logr.Logger, interval time.Duration, baseDirectory string, lc *TracrMap) {
+func RunForever(ctx context.Context, lh logr.Logger, interval time.Duration, baseDirectory string, lc *TracrMap) {
 	// let's try to keep the amount of code we do in init() at minimum.
 	// This may happen if the container didn't have the directory mounted
 	discard := !existsBaseDirectory(baseDirectory)
 	if discard {
-		logger.Info("base directory not found, will discard everything", "baseDirectory", baseDirectory)
+		lh.Info("base directory not found, will discard everything", "baseDirectory", baseDirectory)
 	}
 
 	delta := interval - 10*time.Millisecond // TODO
-	logger.Info("dump loop info", "interval", interval, "delta", delta)
+	lh.Info("dump loop info", "interval", interval, "delta", delta)
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -58,7 +58,7 @@ func RunForever(ctx context.Context, logger logr.Logger, interval time.Duration,
 				writeLogTrace(baseDirectory, expired.logID, expired.data)
 			}
 			if len(expireds) > 0 {
-				logger.V(4).Info("processed logs", "entries", len(expireds), "stored", !discard)
+				lh.V(4).Info("processed logs", "entries", len(expireds), "stored", !discard)
 			}
 		}
 	}

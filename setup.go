@@ -28,48 +28,33 @@ import (
 )
 
 type Config struct {
-	Verbose       int           `json:"verbose"`
 	DumpInterval  time.Duration `json:"dumpInterval"`
 	DumpDirectory string        `json:"dumpDirectory"`
 }
 
 type Params struct {
 	Conf        Config
-	MainSink    *logr.Logger // optional, use nil to let the package use its defaults
 	Timestamper TimeFunc
 }
 
-func DefaultBackend() *log.Logger {
-	return log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
-}
-
-func SetupWithEnv(ctx context.Context, backend *log.Logger) (logr.Logger, logr.Logger, error) {
+func SetupWithEnv(ctx context.Context) (logr.Logger, error) {
 	conf, err := ConfigFromEnv()
 	if err != nil {
-		return stdr.New(backend), logr.Discard(), err
+		return logr.Discard(), err
 	}
-
-	mainSink, flowSink := SetupWithParams(ctx, backend, Params{
+	return SetupWithParams(ctx, Params{
 		Conf:        conf,
 		Timestamper: time.Now,
-	})
-	return mainSink, flowSink, nil
+	}), nil
 }
 
-func SetupWithParams(ctx context.Context, backend *log.Logger, params Params) (logr.Logger, logr.Logger) {
-	var mainSink logr.Logger
-	if params.MainSink == nil {
-		mainSink = stdr.New(backend)
-	} else {
-		mainSink = *params.MainSink
-	}
-	mainSink.Info("starting", "configuration", toJSON(params.Conf))
-
+func SetupWithParams(ctx context.Context, params Params) logr.Logger {
+	backend := stdr.New(log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile))
+	backend.Info("starting", "configuration", toJSON(params.Conf))
 	traces := NewTracrMap(params.Timestamper)
-	flowSink := New(backend, traces, params.Conf.Verbose, stdr.Options{}) // promote to final sink
-	go RunForever(ctx, flowSink, params.Conf.DumpInterval, params.Conf.DumpDirectory, traces)
-
-	return mainSink, flowSink
+	lh := New(traces, stdr.Options{}) // promote to final lh
+	go RunForever(ctx, backend, params.Conf.DumpInterval, params.Conf.DumpDirectory, traces)
+	return lh
 }
 
 func toJSON(obj interface{}) string {

@@ -19,14 +19,12 @@ package logtracr
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 )
 
 const (
 	LogTracrDirEnvVar      string = "LOGTRACR_DUMP_DIR"
 	LogTracrIntervalEnvVar string = "LOGTRACR_DUMP_INTERVAL"
-	LogTracrVerboseEnvVar  string = "LOGTRACR_VERBOSE"
 )
 
 type EnvVarMissing struct {
@@ -69,15 +67,6 @@ func ConfigFromEnv() (Config, error) {
 	}
 	if conf.DumpInterval == 0 {
 		return conf, &UnsupportedSetting{Name: LogTracrIntervalEnvVar, Value: val}
-	}
-
-	verb, ok := os.LookupEnv(LogTracrVerboseEnvVar)
-	if !ok {
-		return conf, &EnvVarMissing{Name: LogTracrVerboseEnvVar}
-	}
-	conf.Verbose, err = strconv.Atoi(verb)
-	if err != nil {
-		return conf, &UnsupportedSetting{Name: LogTracrIntervalEnvVar, Value: verb}
 	}
 
 	return conf, nil

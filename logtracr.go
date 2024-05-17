@@ -27,31 +27,25 @@ import (
 
 type logtracr struct {
 	funcr.Formatter
-	std      stdr.StdLogger
 	traces   *TracrMap
 	logID    string
 	hasLogID bool
-	verbose  int
 }
 
-func New(std stdr.StdLogger, lc *TracrMap, verbose int, opts stdr.Options) logr.Logger {
+func New(tm *TracrMap, opts stdr.Options) logr.Logger {
 	sl := &logtracr{
 		Formatter: funcr.NewFormatter(funcr.Options{
 			LogCaller: funcr.MessageClass(opts.LogCaller),
 		}),
-		std:     std,
-		traces:  lc,
-		verbose: verbose,
+		traces: tm,
 	}
-
 	// For skipping our own logger.Info/Error.
 	sl.Formatter.AddCallDepth(1 + opts.Depth)
-
 	return logr.New(sl)
 }
 
-func (l logtracr) Enabled(level int) bool {
-	return l.verbose >= level || l.logID != ""
+func (l logtracr) Enabled(_ int) bool {
+	return l.logID != ""
 }
 
 func (l logtracr) Info(level int, msg string, kvList ...interface{}) {
@@ -60,12 +54,6 @@ func (l logtracr) Info(level int, msg string, kvList ...interface{}) {
 		args = prefix + ": " + args
 	}
 	l.store(args, kvList)
-	// we can end up here because either we have enough verbosiness
-	// OR because stored logID. So we must redo this check.
-	if l.verbose < level {
-		return
-	}
-	_ = l.std.Output(l.Formatter.GetDepth()+1, args)
 }
 
 func (l logtracr) Error(err error, msg string, kvList ...interface{}) {
@@ -74,7 +62,6 @@ func (l logtracr) Error(err error, msg string, kvList ...interface{}) {
 		args = prefix + ": " + args
 	}
 	l.store(args, kvList)
-	_ = l.std.Output(l.Formatter.GetDepth()+1, args)
 }
 
 func (l logtracr) WithName(name string) logr.LogSink {
