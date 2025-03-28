@@ -6,6 +6,8 @@ Please check [the design document](DESIGN.md) for more details
 The package is used mostly in conjunction Kubernetes' [klog](https://github.com/kubernetes/klog) in the kubernetes ecosystem,
 but is meant to be generic and working with any logr-based solution.
 
+For more context, please see the [presentation](docs/a-go-logr-de-entanglr.pdf).
+
 ## What is a log flight recorder
 
 Let's borrow a great concise description from the [go blog](https://go.dev/blog/execution-traces-2024):
